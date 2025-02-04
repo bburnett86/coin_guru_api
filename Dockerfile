@@ -21,7 +21,7 @@ RUN gem update --system 3.3.22 && \
 
 # Configure environment
 ENV RAILS_ENV="${RAILS_ENV:-production}" \
-    BUNDLE_DEPLOYMENT="${BUNDLE_DEPLOYMENT:-1}" \
+    BUNDLE_DEPLOYMENT="${BUNDLE_DEPLOYMENT:-0}" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="${BUNDLE_WITHOUT}" \
     LANG=C.UTF-8 \
