@@ -22,6 +22,9 @@ jobs:
       - name: Update RubyGems
         run: gem update --system
 
+      - name: Normalize platforms in Gemfile.lock
+        run: bundle lock --normalize-platforms
+
       - name: Generate binstubs
         run: bundle binstubs railties --force
 
@@ -42,6 +45,9 @@ jobs:
 
       - name: Update RubyGems
         run: gem update --system
+
+      - name: Normalize platforms in Gemfile.lock
+        run: bundle lock --normalize-platforms
 
       - name: Generate binstubs
         run: bundle binstubs railties --force
@@ -78,6 +84,9 @@ jobs:
 
       - name: Update RubyGems
         run: gem update --system
+
+      - name: Normalize platforms in Gemfile.lock
+        run: bundle lock --normalize-platforms
 
       - name: Generate binstubs
         run: bundle binstubs railties --force
