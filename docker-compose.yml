@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:13
@@ -16,11 +18,12 @@ services:
       - app-network
 
   web:
-    build: 
+    build:
       context: .
       target: development
     volumes:
-      - bundle:/usr/local/bundle
+      - .:/coin_guru_api  # Sync entire project (including bin/)
+      - bundle:/usr/local/bundle  # Keep gems in a volume
     environment:
       DATABASE_USERNAME: ${DATABASE_USERNAME:-postgres}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
@@ -36,6 +39,9 @@ services:
       - "3000:3000"
     networks:
       - app-network
+    # Fixes file watcher issues in development
+    tmpfs:
+      - /coin_guru_api/tmp
 
 volumes:
   postgres_data:
