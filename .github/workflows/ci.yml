@@ -19,6 +19,12 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Update RubyGems
+        run: gem update --system
+
+      - name: Generate binstubs
+        run: bundle binstubs railties --force
+
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: bin/brakeman --no-pager
 
@@ -34,6 +40,12 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Update RubyGems
+        run: gem update --system
+
+      - name: Generate binstubs
+        run: bundle binstubs railties --force
+
       - name: Lint code for consistent style
         run: bin/rubocop -f github
 
@@ -46,19 +58,14 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coin_guru_api_test
         ports:
           - 5432:5432
         options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      # redis:
-      #   image: redis
-      #   ports:
-      #     - 6379:6379
-      #   options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips postgresql-client
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips postgresql-client libpq-dev
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -69,12 +76,28 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Update RubyGems
+        run: gem update --system
+
+      - name: Generate binstubs
+        run: bundle binstubs railties --force
+
+      - name: Set up database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
+        run: |
+          sleep 10 # Wait for PostgreSQL to fully initialize
+          bundle exec rails db:create
+          bundle exec rails db:structure:load
+
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432
-          # REDIS_URL: redis://localhost:6379/0
-        run: bin/rails db:test:prepare test test:system
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
+        run: |
+          export DISPLAY=:99
+          /usr/bin/Xvfb :99 -screen 0 1280x1024x24 &
+          bundle exec rails db:test:prepare test test:system
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
