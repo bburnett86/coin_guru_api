@@ -13,6 +13,8 @@ RUN apt-get update -qq && \
     libjemalloc2 \
     libvips \
     postgresql-client \
+    # Add PostgreSQL development libraries
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Update RubyGems and Bundler
@@ -34,9 +36,7 @@ FROM base AS development
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential \
-    git \
-    libpq-dev \
-    pkg-config \
+    libgmp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user with permissions

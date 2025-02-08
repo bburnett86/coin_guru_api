@@ -86,14 +86,14 @@ jobs:
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
         run: |
-          bin/rails db:create
-          bin/rails db:structure:load
+          bundle exec rails db:create
+          bundle exec rails db:structure:load
 
       - name: Run tests
         env:
           RAILS_ENV: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
-        run: bin/rails db:test:prepare test test:system
+        run: bundle exec rails db:test:prepare test test:system
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
