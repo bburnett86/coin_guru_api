@@ -87,7 +87,7 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
         run: |
           bin/rails db:create
-          bin/rails db:schema:load
+          bin/rails db:structure:load
 
       - name: Run tests
         env:
