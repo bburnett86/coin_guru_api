@@ -28,11 +28,12 @@ jobs:
       - name: Generate binstubs
         run: bundle binstubs railties --force
 
-      - name: Scan for common Rails security vulnerabilities using static analysis
+      - name: Scan for security vulnerabilities
         run: bin/brakeman --no-pager
 
   lint:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,66 +53,61 @@ jobs:
       - name: Generate binstubs
         run: bundle binstubs railties --force
 
-      - name: Lint code for consistent style
+      - name: Lint code for style consistency
         run: bin/rubocop -f github
 
   test:
     runs-on: ubuntu-latest
-
     services:
       postgres:
-        image: postgres
+        image: postgres:17
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: coin_guru_api_test
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }} 
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}  
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }} 
         ports:
           - 5432:5432
-        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: >-
+          --health-cmd "pg_isready -U bburnett86 -d coin_guru_api_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips postgresql-client libpq-dev
-
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
+      - name: Install dotenv and load environment variables
+        run: |
+          gem install dotenv
+          export $(cat .env.development | xargs)
 
-      - name: Update RubyGems
-        run: gem update --system
+      - name: Set up Docker Compose environment
+        run: docker-compose -f docker-compose.dev.yml up -d --build
 
-      - name: Normalize platforms in Gemfile.lock
-        run: bundle lock --normalize-platforms
+      - name: Check running services
+        run: docker ps -a
 
-      - name: Generate binstubs
-        run: bundle binstubs railties --force
+      - name: Reset database (for clean CI runs)
+        run: |
+          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
 
       - name: Set up database
-        env:
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
         run: |
-          sleep 10 # Wait for PostgreSQL to fully initialize
-          bundle exec rails db:create
-          bundle exec rails db:structure:load
+          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:create
+          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:migrate
+          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:test:prepare
 
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/coin_guru_api_test
-        run: |
-          export DISPLAY=:99
-          /usr/bin/Xvfb :99 -screen 0 1280x1024x24 &
-          bundle exec rails db:test:prepare test test:system
+      - name: Run tests inside Docker
+        run: docker-compose -f docker-compose.dev.yml exec -T web bundle exec rspec
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
+          path: tmp/screenshots
           if-no-files-found: ignore
+
+      - name: Stop and clean up containers
+        run: docker-compose -f docker-compose.dev.yml down
