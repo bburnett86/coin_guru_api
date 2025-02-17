@@ -93,4 +93,25 @@ FROM base AS test
 
 # Install test dependencies
 RUN apt-get update -qq && \
-    apt
+    apt-get install --no-install-recommends -y \
+    libgmp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Rails environment to test
+ENV RAILS_ENV=test
+
+# Run tests
+CMD ["rails", "test"]
+
+# Production stage
+FROM base AS production
+
+# Set Rails environment to production
+ENV RAILS_ENV=production
+
+# Precompile assets
+RUN bundle exec rails assets:precompile
+
+# Set entrypoint and command
+ENTRYPOINT ["bin/docker-entrypoint"]
+CMD ["rails", "server", "-b", "0.
