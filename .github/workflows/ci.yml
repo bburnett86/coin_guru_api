@@ -19,8 +19,8 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Update RubyGems
-        run: gem update --system
+      - name: Update RubyGems to the latest version
+        run: gem update --system  # Update RubyGems to prevent Nokogiri version issues
 
       - name: Normalize platforms in Gemfile.lock
         run: bundle lock --normalize-platforms
@@ -44,8 +44,8 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Update RubyGems
-        run: gem update --system
+      - name: Update RubyGems to the latest version
+        run: gem update --system  # Update RubyGems to prevent Nokogiri version issues
 
       - name: Normalize platforms in Gemfile.lock
         run: bundle lock --normalize-platforms
@@ -62,13 +62,13 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }} 
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}  
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }} 
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U bburnett86 -d coin_guru_api_test"
+          --health-cmd "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -77,37 +77,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dotenv and load environment variables
-        run: |
-          gem install dotenv
-          export $(cat .env.development | xargs)
-
-      - name: Set up Docker Compose environment
-        run: docker-compose -f docker-compose.dev.yml up -d --build
+      - name: Set up Docker Compose environment for testing
+        run: docker-compose -f docker-compose.test.yml up -d --build
 
       - name: Check running services
         run: docker ps -a
 
       - name: Reset database (for clean CI runs)
         run: |
-          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
 
-      - name: Set up database
-        run: |
-          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:create
-          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:migrate
-          docker-compose -f docker-compose.dev.yml exec -T web bundle exec rails db:test:prepare
-
-      - name: Run tests inside Docker
-        run: docker-compose -f docker-compose.dev.yml exec -T web bundle exec rspec
-
-      - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: screenshots
-          path: tmp/screenshots
-          if-no-files-found: ignore
-
-      - name: Stop and clean up containers
-        run: docker-compose -f docker-compose.dev.yml down
+    
