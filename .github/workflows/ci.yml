@@ -87,7 +87,9 @@ jobs:
           timeout 60s bash -c 'until docker exec postgres pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
 
       - name: Set up Docker Compose environment for testing
-        run: docker-compose -f docker-compose.test.yml up -d --build
+        run: |
+          echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> $GITHUB_ENV
+          docker-compose -f docker-compose.test.yml up -d --build
 
       - name: Check running services
         run: docker ps -a
