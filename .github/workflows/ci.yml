@@ -91,6 +91,10 @@ jobs:
           echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> $GITHUB_ENV
           docker-compose -f docker-compose.test.yml up -d --build
 
+      - name: Debug RAILS_MASTER_KEY
+        run: |
+          echo "RAILS_MASTER_KEY is set to: ${{ secrets.RAILS_MASTER_KEY }}"
+
       - name: Check running services
         run: docker ps -a
 
