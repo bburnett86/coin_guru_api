@@ -20,11 +20,10 @@ jobs:
       - name: Update RubyGems to the required version
         run: gem update --system 3.3.22
 
-      - name: Normalize platforms in Gemfile.lock
-        run: bundle lock --normalize-platforms
-
-      - name: Generate binstubs
-        run: bundle binstubs railties --force
+      - name: Install Dependencies
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle binstubs railties --force
 
       - name: Scan for security vulnerabilities
         run: bin/brakeman --no-pager
@@ -43,11 +42,10 @@ jobs:
       - name: Update RubyGems to the required version
         run: gem update --system 3.3.22
 
-      - name: Normalize platforms in Gemfile.lock
-        run: bundle lock --normalize-platforms
-
-      - name: Generate binstubs
-        run: bundle binstubs railties --force
+      - name: Install Dependencies
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle binstubs railties --force
 
       - name: Lint code for style consistency
         run: bin/rubocop -f github
@@ -58,20 +56,19 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coin_guru_api_test
         ports:
           - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: --health-cmd "pg_isready -U postgres -d coin_guru_api_test"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set Environment Variables
+        run: echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
 
       - name: Set up Docker Compose environment for testing
         run: docker-compose -f docker-compose.test.yml up -d --build
