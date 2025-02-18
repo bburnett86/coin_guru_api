@@ -11,7 +11,7 @@ gem "puma", ">= 5.0"
 # Use Redis adapter to run Action Cable in production
 # gem "redis", ">= 4.0.1"
 
-gem "nokogiri", "~> 1.18", platforms: [:ruby]
+gem "nokogiri", "~> 1.18", platforms: [ :ruby ]
 
 ruby "3.3.0"
 
@@ -55,7 +55,7 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  gem 'rspec-rails'
+  gem "rspec-rails"
 
   gem "dotenv-rails"
 end
