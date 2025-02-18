@@ -56,13 +56,13 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coin_guru_api_test
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+          --health-cmd "pg_isready -U postgres -d coin_guru_api_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -70,17 +70,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set Environment Variables
-        run: |
-          echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> $GITHUB_ENV
-          echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
-          echo "DATABASE_PORT=5432" >> $GITHUB_ENV
-          echo "DATABASE_USERNAME=${{ secrets.POSTGRES_USER }}" >> $GITHUB_ENV
-          echo "DATABASE_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> $GITHUB_ENV
-          echo "DATABASE_NAME=${{ secrets.POSTGRES_DB }}" >> $GITHUB_ENV
-          echo "COIN_GECKO_API_TOKEN=${{ secrets.COIN_GECKO_API_TOKEN }}" >> $GITHUB_ENV
-          echo "COIN_GECKO_API_URL=${{ secrets.COIN_GECKO_API_URL }}" >> $GITHUB_ENV
 
       - name: Set up Docker Compose environment for testing
         run: docker-compose -f docker-compose.test.yml up -d --build
