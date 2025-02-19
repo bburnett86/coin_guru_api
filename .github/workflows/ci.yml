@@ -66,11 +66,11 @@ jobs:
         run: |
           docker run -d \
             --name postgres \
-            -e POSTGRES_USER=${{ secrets.POSTGRES_USER }} \
-            -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-            -e POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+            -e POSTGRES_USER=${POSTGRES_USER:-postgres} \
+            -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres} \
+            -e POSTGRES_DB=${POSTGRES_DB:-coin_guru_api_test} \
             -p 5432:5432 \
-            --health-cmd "pg_isready -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }}" \
+            --health-cmd "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-coin_guru_api_test}" \
             --health-interval 10s \
             --health-timeout 5s \
             --health-retries 5 \
@@ -84,31 +84,32 @@ jobs:
 
       - name: Wait for PostgreSQL to be ready
         run: |
-          timeout 60s bash -c 'until docker exec postgres pg_isready -U ${{ secrets.POSTGRES_USER }} -d ${{ secrets.POSTGRES_DB }}; do sleep 2; done'
+          timeout 60s bash -c 'until docker exec postgres pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-coin_guru_api_test}; do sleep 2; done'
 
       - name: Set up Docker Compose environment for testing
         run: |
           echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> $GITHUB_ENV
           docker-compose -f docker-compose.test.yml up -d --build
 
-      - name: Check secrets length
+      - name: Debug Secrets
         run: |
-          echo "POSTGRES_USER length: ${#POSTGRES_USER}"
-          echo "POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}"
-          echo "RAILS_MASTER_KEY length: ${#RAILS_MASTER_KEY}"
+          echo "POSTGRES_USER: ${{ secrets.POSTGRES_USER }}"
+          echo "POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}"
+          echo "POSTGRES_DB: ${{ secrets.POSTGRES_DB }}"
+          echo "RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}"
 
       - name: Check running services
         run: docker ps -a
 
       - name: Drop database
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop
-      
+
       - name: Create database
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create
-      
+
       - name: Run migrations
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate
-      
+
       - name: Prepare test database
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare
 
