@@ -1,26 +1,20 @@
 default: &default
   adapter: postgresql
   encoding: unicode
+  host: <%= ENV['DATABASE_HOST'] %>
+  port: <%= ENV['DATABASE_PORT'] %>
+  username: <%= ENV['DATABASE_USERNAME'] %>
+  password: <%= ENV['DATABASE_PASSWORD'] %>
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  # Use environment variables for sensitive credentials
-  username: <%= ENV.fetch('DATABASE_USERNAME', 'postgres') %>
-  password: <%= ENV.fetch('DATABASE_PASSWORD', 'password') %>
-  # Use environment variables for host and port
-  host: <%= ENV.fetch('DATABASE_HOST', 'localhost') %>
-  port: <%= ENV.fetch('DATABASE_PORT', 5432) %>
-  # Use a consistent connection timeout
-  connect_timeout: 5
 
 development:
   <<: *default
-  database: coin_guru_api_development
+  database: <%= ENV.fetch('DATABASE_NAME') { 'coin_guru_api_development' } %>
 
 test:
   <<: *default
-  database: coin_guru_api_test
+  database: <%= ENV.fetch('DATABASE_NAME') { 'coin_guru_api_test' } %>
 
 production:
   <<: *default
   database: coin_guru_api_production
-  # Use a URL-based configuration for production (recommended for Docker and cloud environments)
-  url: <%= ENV.fetch('DATABASE_URL', "postgresql://#{ENV.fetch('DATABASE_USERNAME', 'postgres')}:#{ENV.fetch('DATABASE_PASSWORD', 'password')}@#{ENV.fetch('DATABASE_HOST', 'localhost')}:#{ENV.fetch('DATABASE_PORT', 5432)}/#{ENV.fetch('DATABASE_NAME', 'coin_guru_api_production')}") %>

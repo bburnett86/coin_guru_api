@@ -8,7 +8,6 @@ on:
 jobs:
   scan_ruby:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,9 +16,16 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: .ruby-version
-          bundler-cache: true
 
-      - name: Scan for common Rails security vulnerabilities using static analysis
+      - name: Update RubyGems to the required version
+        run: gem update --system 3.3.22
+
+      - name: Install Dependencies
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle binstubs railties --force
+
+      - name: Scan for security vulnerabilities
         run: bin/brakeman --no-pager
 
   lint:
@@ -32,54 +38,51 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: .ruby-version
-          bundler-cache: true
 
-      - name: Lint code for consistent style
+      - name: Update RubyGems to the required version
+        run: gem update --system 3.3.22
+
+      - name: Install Dependencies
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle binstubs railties --force
+
+      - name: Lint code for style consistency
         run: bin/rubocop -f github
 
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd="pg_isready" --health-interval=10s --health-timeout=5s --health-retries=3
-
-      # redis:
-      #   image: redis
-      #   ports:
-      #     - 6379:6379
-      #   options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
-      - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl libjemalloc2 libvips postgresql-client
-
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: .ruby-version
-          bundler-cache: true
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
 
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432
-          # REDIS_URL: redis://localhost:6379/0
-        run: bin/rails db:test:prepare test test:system
+      - name: Set up Docker Compose environment for testing
+        run: docker-compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
+
+      - name: Drop and create database
+        run: |
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
+
+      - name: Run tests inside Docker
+        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: screenshots
-          path: ${{ github.workspace }}/tmp/screenshots
+          path: tmp/screenshots
           if-no-files-found: ignore
+
+      - name: Stop and clean up containers
+        run: docker-compose -f docker-compose.test.yml down
