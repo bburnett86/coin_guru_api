@@ -111,13 +111,17 @@ jobs:
       - name: Check running services
         run: docker ps -a
 
-      - name: Reset database (for clean CI runs)
-        run: |
-          echo "Running database setup..."
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare
+      - name: Drop database
+        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop
+      
+      - name: Create database
+        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create
+      
+      - name: Run migrations
+        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate
+      
+      - name: Prepare test database
+        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare
 
       - name: Run tests inside Docker
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
