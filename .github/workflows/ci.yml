@@ -101,6 +101,12 @@ jobs:
           echo "POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}"
           echo "POSTGRES_DB: ${{ secrets.POSTGRES_DB }}"
           echo "RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}"
+      
+      - name: Check secrets
+        run: |
+          echo "POSTGRES_USER is: ${{ secrets.POSTGRES_USER }}"
+          echo "POSTGRES_PASSWORD is: ${{ secrets.POSTGRES_PASSWORD }}"
+          echo "RAILS_MASTER_KEY is: ${{ secrets.RAILS_MASTER_KEY }}"
 
       - name: Check running services
         run: docker ps -a
