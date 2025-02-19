@@ -31,6 +31,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
     networks:
       - app-network
 

@@ -107,7 +107,11 @@ jobs:
 
       - name: Reset database (for clean CI runs)
         run: |
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
+          echo "Running database setup..."
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare
 
       - name: Run tests inside Docker
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
