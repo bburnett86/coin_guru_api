@@ -96,13 +96,6 @@ jobs:
           echo "POSTGRES_USER length: ${#POSTGRES_USER}"
           echo "POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}"
           echo "RAILS_MASTER_KEY length: ${#RAILS_MASTER_KEY}"
-          
-      - name: Verify RAILS_MASTER_KEY in Rails
-        run: |
-          echo "RAILS_MASTER_KEY: $RAILS_MASTER_KEY"
-          bundle exec rails credentials:show
-        
-        
 
       - name: Check running services
         run: docker ps -a
