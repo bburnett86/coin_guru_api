@@ -91,22 +91,18 @@ jobs:
           echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> $GITHUB_ENV
           docker-compose -f docker-compose.test.yml up -d --build
 
-      - name: Debug RAILS_MASTER_KEY
+      - name: Check secrets length
         run: |
-          echo "RAILS_MASTER_KEY is set to: ${{ secrets.RAILS_MASTER_KEY }}"
-
-      - name: Debug Environment Variables
+          echo "POSTGRES_USER length: ${#POSTGRES_USER}"
+          echo "POSTGRES_PASSWORD length: ${#POSTGRES_PASSWORD}"
+          echo "RAILS_MASTER_KEY length: ${#RAILS_MASTER_KEY}"
+          
+      - name: Verify RAILS_MASTER_KEY in Rails
         run: |
-          echo "POSTGRES_USER: ${{ secrets.POSTGRES_USER }}"
-          echo "POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}"
-          echo "POSTGRES_DB: ${{ secrets.POSTGRES_DB }}"
-          echo "RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}"
-      
-      - name: Check secrets
-        run: |
-          echo "POSTGRES_USER is: ${{ secrets.POSTGRES_USER }}"
-          echo "POSTGRES_PASSWORD is: ${{ secrets.POSTGRES_PASSWORD }}"
-          echo "RAILS_MASTER_KEY is: ${{ secrets.RAILS_MASTER_KEY }}"
+          echo "RAILS_MASTER_KEY: $RAILS_MASTER_KEY"
+          bundle exec rails credentials:show
+        
+        
 
       - name: Check running services
         run: docker ps -a
