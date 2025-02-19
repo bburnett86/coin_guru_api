@@ -63,27 +63,15 @@ jobs:
           docker-compose --version
 
       - name: Set up Docker Compose environment for testing
+        run: docker-compose -f docker-compose.test.yml up -d --build
+
+      - name: Wait for services to be ready
         run: |
-          docker-compose -f docker-compose.test.yml up -d --build
-        env:
-          DATABASE_USERNAME: ${{ secrets.POSTGRES_USER }}
-          DATABASE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
 
-      - name: Check running services
-        run: docker ps -a
-
-      - name: Drop database
-        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop
-
-      - name: Create database
-        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create
-
-      - name: Run migrations
-        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate
-
-      - name: Prepare test database
-        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare
+      - name: Drop and create database
+        run: |
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
 
       - name: Run tests inside Docker
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
@@ -97,5 +85,4 @@ jobs:
           if-no-files-found: ignore
 
       - name: Stop and clean up containers
-        run: |
-          docker-compose -f docker-compose.test.yml down
+        run: docker-compose -f docker-compose.test.yml down
