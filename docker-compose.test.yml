@@ -27,14 +27,13 @@ services:
       DATABASE_HOST: db
       DATABASE_NAME: coin_guru_api_test
       RAILS_ENV: test
-      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY} 
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
     depends_on:
       db:
         condition: service_healthy
     deploy:
       resources:
-        limits:
-          memory: 1.5G
+        limits: {}
     networks:
       - app-network
 
