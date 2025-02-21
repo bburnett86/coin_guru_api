@@ -34,7 +34,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1.5G  # Reduced memory allocation from 3G to 1.5G
+          memory: 1.5G
     networks:
       - app-network
 

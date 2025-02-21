@@ -52,19 +52,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    env:
-      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Increase Swap Memory to Prevent OOM
-        run: |
-          sudo fallocate -l 2G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
 
       - name: Install Docker Compose
         run: |
@@ -79,12 +69,9 @@ jobs:
         run: |
           timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
 
-      - name: Setup Test Database
+      - name: Drop and create database
         run: |
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop --trace || true
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:create --trace
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:migrate --no-parallel --trace
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:test:prepare --trace
+          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
 
       - name: Run tests inside Docker
         run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
