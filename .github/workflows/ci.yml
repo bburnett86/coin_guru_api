@@ -87,12 +87,14 @@ jobs:
           docker-compose --version
 
       - name: Set up Docker Compose environment
-        run: docker-compose -f docker-compose.test.yml up -d --build --progress plain
+        run: |
+          docker-compose -f docker-compose.test.yml build --no-cache
+          docker-compose -f docker-compose.test.yml up -d
+          docker-compose -f docker-compose.test.yml ps
 
       - name: Check database logs
         run: docker-compose -f docker-compose.test.yml logs db
 
-      # UPDATED: More robust waiting with increased timeout
       - name: Wait for database readiness
         run: |
           timeout 120s bash -c '
@@ -103,7 +105,6 @@ jobs:
             sleep 5
           done'
 
-      # UPDATED: Added trace to all database commands
       - name: Setup Test Database
         run: |
           docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop --trace || true
