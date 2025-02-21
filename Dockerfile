@@ -92,10 +92,9 @@ CMD ["rails", "server", "-b", "0.0.0.0"]
 FROM base AS test
 
 # Install test dependencies
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    libgmp-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y postgresql-client libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set Rails environment to test
 ENV RAILS_ENV=test
