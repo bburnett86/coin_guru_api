@@ -54,11 +54,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      COIN_GECKO_API_URL: ${{ secrets.COIN_GECKO_API_URL }}
+      COIN_GECKO_API_TOKEN: ${{ secrets.COIN_GECKO_API_TOKEN }}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Increase Swap Memory to Prevent OOM
+      - name: Increase Swap Memory
         run: |
           sudo fallocate -l 2G /swapfile
           sudo chmod 600 /swapfile
@@ -72,12 +78,12 @@ jobs:
           sudo chmod +x /usr/local/bin/docker-compose
           docker-compose --version
 
-      - name: Set up Docker Compose environment for testing
+      - name: Set up Docker Compose environment
         run: docker-compose -f docker-compose.test.yml up -d --build
 
-      - name: Wait for services to be ready
+      - name: Wait for services
         run: |
-          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
+          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do sleep 2; done'
 
       - name: Setup Test Database
         run: |

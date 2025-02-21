@@ -1,19 +1,15 @@
 services:
   db:
-  
     image: postgres:17
     restart: always
     volumes:
       - postgres_data_test:/var/lib/postgresql/data
-    env_file:
-      - .env.test
     environment:
-      environment:
-      POSTGRES_USER: ${TEST_DATABASE_USERNAME:-postgres}  
-      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD:-postgres}
-      POSTGRES_DB: ${TEST_DATABASE_NAME:-coin_guru_api_test}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-coin_guru_api_test}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEST_DATABASE_USERNAME:-postgres} -d coin_guru_api_test"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,19 +22,13 @@ services:
       target: test
     restart: on-failure
     environment:
-      DATABASE_USERNAME: ${TEST_DATABASE_USERNAME:-postgres}
-      DATABASE_PASSWORD: ${TEST_DATABASE_PASSWORD:-postgres}
-      DATABASE_HOST: db
-      DATABASE_NAME: coin_guru_api_test
-      RAILS_ENV: test
-      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY} 
+      DATABASE_URL: ${DATABASE_URL}
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
+      COIN_GECKO_API_URL: ${COIN_GECKO_API_URL}
+      COIN_GECKO_API_TOKEN: ${COIN_GECKO_API_TOKEN}
     depends_on:
       db:
         condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 1.5G  # Reduced memory allocation from 3G to 1.5G
     networks:
       - app-network
 
