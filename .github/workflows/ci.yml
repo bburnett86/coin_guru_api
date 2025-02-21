@@ -59,19 +59,22 @@ jobs:
       POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
       COIN_GECKO_API_URL: ${{ secrets.COIN_GECKO_API_URL }}
       COIN_GECKO_API_TOKEN: ${{ secrets.COIN_GECKO_API_TOKEN }}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Debug Environment Variables
         run: |
-          echo "=== ENV VARIABLES ==="
-          echo "POSTGRES_USER: $POSTGRES_USER"
-          echo "POSTGRES_DB: $POSTGRES_DB"
-          echo "DATABASE_URL: $DATABASE_URL"
-          echo "COIN_GECKO_API_URL: (redacted)"
-          echo "COIN_GECKO_API_TOKEN: (redacted)"
+          echo "POSTGRES_USER: $POSTGRES_USER" | sed 's/./*/g'
+          echo "POSTGRES_DB: $POSTGRES_DB" | sed 's/./*/g'
+          echo "DATABASE_URL: $(echo $DATABASE_URL | sed 's/./*/g')"
+
+      - name: Verify Secret Presence
+        run: |
+          if [ -z "$POSTGRES_USER" ]; then echo "POSTGRES_USER is empty"; exit 1; fi
+          if [ -z "$POSTGRES_PASSWORD" ]; then echo "POSTGRES_PASSWORD is empty"; exit 1; fi
+          if [ -z "$POSTGRES_DB" ]; then echo "POSTGRES_DB is empty"; exit 1; fi
 
       - name: Increase Swap Memory
         run: |
