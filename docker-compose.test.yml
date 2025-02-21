@@ -22,6 +22,9 @@ services:
       target: test
     restart: on-failure
     environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       DATABASE_URL: ${DATABASE_URL}
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       COIN_GECKO_API_URL: ${COIN_GECKO_API_URL}
