@@ -64,6 +64,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug Environment Variables
+        run: |
+          echo "=== ENV VARIABLES ==="
+          echo "POSTGRES_USER: $POSTGRES_USER"
+          echo "POSTGRES_DB: $POSTGRES_DB"
+          echo "DATABASE_URL: $DATABASE_URL"
+          echo "COIN_GECKO_API_URL: $COIN_GECKO_API_URL"
+
       - name: Increase Swap Memory
         run: |
           sudo fallocate -l 2G /swapfile
@@ -79,12 +87,23 @@ jobs:
           docker-compose --version
 
       - name: Set up Docker Compose environment
-        run: docker-compose -f docker-compose.test.yml up -d --build
+        run: docker-compose -f docker-compose.test.yml up -d --build --progress plain
 
-      - name: Wait for services
+      - name: Check database logs
+        run: docker-compose -f docker-compose.test.yml logs db
+
+      # UPDATED: More robust waiting with increased timeout
+      - name: Wait for database readiness
         run: |
-          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do sleep 2; done'
+          timeout 120s bash -c '
+          until docker-compose -f docker-compose.test.yml exec -T db \
+            pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+          do
+            echo "[$(date +%T)] Waiting for database connection..."
+            sleep 5
+          done'
 
+      # UPDATED: Added trace to all database commands
       - name: Setup Test Database
         run: |
           docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop --trace || true
