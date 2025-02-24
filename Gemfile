@@ -13,7 +13,7 @@ gem "puma", ">= 5.0"
 
 gem "nokogiri", "~> 1.18", platforms: [ :ruby ]
 
-ruby "3.3.0"
+ruby "3.2.2"
 
 
 

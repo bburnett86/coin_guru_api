@@ -1,116 +1,91 @@
-# syntax = docker/dockerfile:1
-ARG RUBY_VERSION=3.3.0 
-ARG BUNDLE_WITHOUT="${BUNDLE_WITHOUT:-development:test}"
+# syntax=docker/dockerfile:1
 
-# Base stage (common for all environments)
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
+# Stage 1: Base image with essential dependencies
+ARG RUBY_VERSION=3.2.2
+FROM ruby:${RUBY_VERSION}-alpine AS base
 
 WORKDIR /coin_guru_api
 
-# Install runtime dependencies
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
+# Install essential runtime dependencies (alpine packages)
+RUN apk add --no-cache \
+    build-base \
+    postgresql-client \
+    postgresql-dev \
+    vips-dev \
+    jemalloc \
+    tzdata \
     curl \
-    gnupg \
-    libjemalloc2 \
-    libvips \
-    libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
+    bash \
+    && rm -rf /var/cache/apk/*
 
-# Add PostgreSQL repository
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(grep -oP 'VERSION_CODENAME=\K\w+' /etc/os-release)-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list && \
-    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update -qq && \
-    apt-get install --no-install-recommends -y postgresql-client && \
-    rm -rf /var/lib/apt/lists/*
+# Configure Ruby and Bundler
+RUN gem update --system 3.3.22 \
+    && gem install bundler -v 2.6.3
 
-# Update RubyGems and Bundler
-RUN gem update --system 3.3.22 && \
-    gem install bundler -v 2.6.3
-
-# Configure environment
 ENV RAILS_ENV="${RAILS_ENV:-production}" \
-    BUNDLE_DEPLOYMENT="${BUNDLE_DEPLOYMENT:-0}" \
+    BUNDLE_DEPLOYMENT=1 \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="${BUNDLE_WITHOUT}" \
-    LANG=C.UTF-8 \
-    PATH="/coin_guru_api/bin:$PATH"
+    BUNDLE_WITHOUT="${BUNDLE_WITHOUT:-development:test}" \
+    LD_PRELOAD="/usr/lib/libjemalloc.so.2" \
+    RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=1.5 \
+    RUBY_GC_MALLOC_LIMIT=100000000 \
+    RUBY_GC_OLDMALLOC_LIMIT=20000000 \
+MALLOC_ARENA_MAX=2
 
-# Copy Gemfile and install gems
+# Copy only dependency files first for layer caching
 COPY Gemfile Gemfile.lock ./
 
-# Install build tools temporarily for gem installation
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    build-essential \
-    gcc \
-    make \
-    && bundle install --jobs=4 --retry=3 \
-    && apt-get remove -y build-essential gcc make \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+# Install gems in optimized way
+RUN bundle install --jobs=4 --retry=3 \
+    && rm -rf /usr/local/bundle/cache/*.gem \
+    && find /usr/local/bundle/gems/ -name "*.c" -delete \
+    && find /usr/local/bundle/gems/ -name "*.o" -delete
 
 # Copy application code
 COPY . .
 
-# Development stage
+# Stage 2: Development environment
 FROM base AS development
 
-# Install additional development dependencies
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    build-essential \
-    libgmp-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Install development tools
+RUN apk add --no-cache \
+    git \
+    nodejs \
+    yarn \
+    chromium \
+    chromium-chromedriver
 
-# Create non-root user with permissions and change ownership of directories
-RUN groupadd --system --gid 1000 rails && \
-    useradd --system --uid 1000 --gid rails --create-home --shell /bin/bash rails && \
-    mkdir -p /coin_guru_api/bin && \
-    chown -R rails:rails /coin_guru_api && \
-    mkdir -p /usr/local/bundle && \
-    chown -R rails:rails /usr/local/bundle
+# Create non-root user
+RUN addgroup -S rails && adduser -S rails -G rails \
+    && chown -R rails:rails /coin_guru_api
 
-USER rails:rails
+USER rails
 
-# Generate binstubs for Rails
-RUN set -ex; \
-    mkdir -p bin; \
-    rm -f bin/rails; \
-    bundle binstubs railties --force; \
-    chmod +x bin/*; \
-    { echo "Generated binstubs:"; ls -l bin/; }
+# Generate binstubs
+RUN bundle binstubs railties --force
 
-# Precompile Bootsnap cache
-RUN bundle exec bootsnap precompile --gemfile app/ lib/
-
-# Set entrypoint and command
-ENTRYPOINT ["bin/docker-entrypoint"]
-CMD ["rails", "server", "-b", "0.0.0.0"]
-
-# Test stage
+# Stage 3: Test environment
 FROM base AS test
 
-# Install test dependencies
-RUN apt-get update && \
-    apt-get install -y postgresql-client libpq-dev && \
-    rm -rf /var/lib/apt/lists/*
+ENV RAILS_ENV=test \
+    BUNDLE_WITHOUT=""
 
-# Set Rails environment to test
-ENV RAILS_ENV=test
+# Install test-specific dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    chromium \
+    chromium-chromedriver
 
-# Run tests
-CMD ["rails", "test"]
-
-# Production stage
+# Stage 4: Production environment
 FROM base AS production
 
-# Set Rails environment to production
-ENV RAILS_ENV=production
+# Precompile assets and clean up
+RUN bundle exec rails assets:precompile \
+    && rm -rf tmp/cache log/*.log
 
-# Precompile assets
-RUN bundle exec rails assets:precompile
+# Entrypoint should be .sh for clarity
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set entrypoint and command
-ENTRYPOINT ["bin/docker-entrypoint"]
-CMD ["rails", "server", "-b", "0.
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["rails", "server", "-b", "0.0.0.0"]

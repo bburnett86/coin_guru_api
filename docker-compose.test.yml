@@ -12,7 +12,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h localhost"]
       interval: 5s
       timeout: 10s
-      retries: 12
+      retries: 15
     networks:
       - app-network
 
@@ -20,7 +20,7 @@ services:
     build:
       context: .
       target: test
-    restart: on-failure
+    restart: unless-stopped
     environment:
       RAILS_ENV: test
       POSTGRES_HOST: db
@@ -32,12 +32,17 @@ services:
       RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
       COIN_GECKO_API_URL: ${COIN_GECKO_API_URL}
       COIN_GECKO_API_TOKEN: ${COIN_GECKO_API_TOKEN}
-      RAILS_MAX_THREADS: 3
-      RUBY_GC_MALLOC_LIMIT: 16777216
-      RUBY_GC_OLDMALLOC_LIMIT: 16777216
+      RAILS_MAX_THREADS: 2
+      RUBY_GC_MALLOC_LIMIT: 100000000
+      RUBY_GC_OLDMALLOC_LIMIT: 20000000
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/up || exit 1"]
+      interval: 10s
+      timeout: 15s
+      retries: 10
     networks:
       - app-network
 
