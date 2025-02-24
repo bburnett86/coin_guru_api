@@ -65,6 +65,10 @@ jobs:
       COIN_GECKO_API_URL: ${{ secrets.COIN_GECKO_API_URL }}
       COIN_GECKO_API_TOKEN: ${{ secrets.COIN_GECKO_API_TOKEN }}
       DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}
+      RAILS_MAX_THREADS: 2
+      RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR: 1.3
+      RUBY_GC_MALLOC_LIMIT: 90000000
+      RUBY_GC_OLDMALLOC_LIMIT: 16000000
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -98,6 +102,11 @@ jobs:
           docker-compose -f docker-compose.test.yml up -d
           docker-compose -f docker-compose.test.yml ps
 
+      - name: Verify Ruby version
+        run: |
+          echo "Expected Ruby version: 3.2.2"
+          docker-compose -f docker-compose.test.yml exec web ruby -v
+
       - name: Database readiness checks
         timeout-minutes: 5
         run: |
@@ -115,13 +124,16 @@ jobs:
             docker-compose -f docker-compose.test.yml exec -T web bundle exec rails "$@"
           }
 
-          for i in {1..3}; do
-            rails_db db:create && rails_db db:migrate && rails_db db:test:prepare && break
-            echo "Attempt $i failed, retrying..."
-            sleep 5
+          for i in {1..5}; do
+            if rails_db db:prepare; then
+              echo "Database setup successful"
+              break
+            else
+              echo "Attempt $i failed, restarting services..."
+              docker-compose -f docker-compose.test.yml restart web db
+              sleep 10
+            fi
           done
-
-          rails_db db:version
 
       - name: Run test suite
         run: |

@@ -14,6 +14,9 @@ development:
 test:
   <<: *default
   database: <%= ENV.fetch('POSTGRES_DB') { 'coin_guru_api_test' } %>
+  host: db
+  port: 5432
+  connect_timeout: 10
   prepared_statements: false
   variables:
     statement_timeout: 5000
