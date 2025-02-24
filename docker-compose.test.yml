@@ -1,55 +1,16 @@
 services:
   db:
-    image: postgres:17
-    restart: always
-    volumes:
-      - postgres_data_test:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-coin_guru_api_test}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h localhost"]
-      interval: 5s
-      timeout: 10s
-      retries: 15
-    networks:
-      - app-network
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coin_guru_api_test
 
   web:
-    build:
-      context: .
-      target: test
-    restart: unless-stopped
     environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/coin_guru_api_test
       RAILS_ENV: test
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-coin_guru_api_test}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-coin_guru_api_test}
-      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
-      COIN_GECKO_API_URL: ${COIN_GECKO_API_URL}
-      COIN_GECKO_API_TOKEN: ${COIN_GECKO_API_TOKEN}
       RAILS_MAX_THREADS: 2
       RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR: 1.3
       RUBY_GC_MALLOC_LIMIT: 90000000
       RUBY_GC_OLDMALLOC_LIMIT: 16000000
       WEB_TIMEOUT: 60
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000/up || exit 1"]
-      interval: 10s
-      timeout: 15s
-      retries: 10
-    networks:
-      - app-network
-
-volumes:
-  postgres_data_test:
-
-networks:
-  app-network:
