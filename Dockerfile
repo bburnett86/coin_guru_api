@@ -6,7 +6,7 @@ FROM ruby:${RUBY_VERSION}-alpine AS base
 
 WORKDIR /coin_guru_api
 
-# Install essential runtime dependencies (alpine packages)
+# Install essential runtime dependencies (Alpine packages)
 RUN apk add --no-cache \
     build-base \
     postgresql-client \
@@ -15,8 +15,7 @@ RUN apk add --no-cache \
     jemalloc \
     tzdata \
     curl \
-    bash \
-    && rm -rf /var/cache/apk/*
+    bash
 
 # Configure Ruby and Bundler
 RUN gem update --system 3.3.22 \
@@ -30,18 +29,18 @@ ENV RAILS_ENV="${RAILS_ENV:-production}" \
     RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR=1.5 \
     RUBY_GC_MALLOC_LIMIT=100000000 \
     RUBY_GC_OLDMALLOC_LIMIT=20000000 \
-MALLOC_ARENA_MAX=2
+    MALLOC_ARENA_MAX=2
 
-# Copy only dependency files first for layer caching
+# Copy only dependency files first for caching optimization
 COPY Gemfile Gemfile.lock ./
 
-# Install gems in optimized way
+# Install gems efficiently
 RUN bundle install --jobs=4 --retry=3 \
     && rm -rf /usr/local/bundle/cache/*.gem \
     && find /usr/local/bundle/gems/ -name "*.c" -delete \
     && find /usr/local/bundle/gems/ -name "*.o" -delete
 
-# Copy application code
+# Copy the entire application code
 COPY . .
 
 # Stage 2: Development environment
@@ -55,7 +54,7 @@ RUN apk add --no-cache \
     chromium \
     chromium-chromedriver
 
-# Create non-root user
+# Create a non-root user
 RUN addgroup -S rails && adduser -S rails -G rails \
     && chown -R rails:rails /coin_guru_api
 
@@ -79,13 +78,23 @@ RUN apk add --no-cache \
 # Stage 4: Production environment
 FROM base AS production
 
-# Precompile assets and clean up
+# Set up a non-root user for security
+RUN addgroup -S rails && adduser -S rails -G rails \
+    && chown -R rails:rails /coin_guru_api
+
+USER rails
+
+# Ensure logs and tmp directories exist
+RUN mkdir -p tmp/cache log \
+    && touch log/production.log
+
+# Precompile assets and cleanup
 RUN bundle exec rails assets:precompile \
     && rm -rf tmp/cache log/*.log
 
-# Entrypoint should be .sh for clarity
+# Entrypoint setup
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["rails", "server", "-b", "0.0.0.0"]
+CMD ["exec", "rails", "server", "-b", "0.0.0.0"]
