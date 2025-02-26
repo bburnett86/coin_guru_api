@@ -16,6 +16,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: .ruby-version
+          bundler-cache: true
 
       - name: Update RubyGems to the required version
         run: gem update --system 3.3.22
@@ -38,6 +39,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: .ruby-version
+          bundler-cache: true
+      - run: bundle exec rubocop -f github --only-recognized-file-types
 
       - name: Update RubyGems to the required version
         run: gem update --system 3.3.22
@@ -52,37 +55,53 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coin_guru_api_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.2.2
+        bundler-cache: true
 
-      - name: Set up Docker Compose environment for testing
-        run: docker-compose -f docker-compose.test.yml up -d --build
+    - name: Install PostgreSQL Client
+      run: |
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+        sudo apt-get update
+        sudo apt-get install postgresql-client-17
 
-      - name: Wait for services to be ready
-        run: |
-          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
+    - name: Database setup
+      env:
+        RAILS_ENV: test
+        POSTGRES_HOST: localhost
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: coin_guru_api_test
+      run: |
+        bundle install
+        bundle exec rails db:prepare
 
-      - name: Drop and create database
-        run: |
-          docker-compose -f docker-compose.test.yml exec -T web bundle exec rails db:drop db:create db:migrate db:test:prepare
-
-      - name: Run tests inside Docker
-        run: docker-compose -f docker-compose.test.yml exec -T web bundle exec rspec
-
-      - name: Keep screenshots from failed system tests
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: screenshots
-          path: tmp/screenshots
-          if-no-files-found: ignore
-
-      - name: Stop and clean up containers
-        run: docker-compose -f docker-compose.test.yml down
+    - name: Run tests
+      env:
+        RAILS_ENV: test
+        POSTGRES_HOST: localhost
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: coin_guru_api_test
+      run: bundle exec rspec
