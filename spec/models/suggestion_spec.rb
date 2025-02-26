@@ -53,7 +53,7 @@ RSpec.describe Suggestion, type: :model do
       suggestion1 = FactoryBot.create(:suggestion, suggestion_type: "public", created_at: 1.day.ago)
       suggestion2 = FactoryBot.create(:suggestion, suggestion_type: "public", created_at: 2.days.ago)
       history = Suggestion.new.public_pick_history
-      expect(history).to eq([suggestion1, suggestion2])
+      expect(history).to eq([ suggestion1, suggestion2 ])
       expect(history.all? { |pick| pick.suggestion_type == "public" }).to be true
     end
   end
@@ -64,7 +64,7 @@ RSpec.describe Suggestion, type: :model do
       suggestion1 = FactoryBot.create(:suggestion, user: user, created_at: 1.day.ago)
       suggestion2 = FactoryBot.create(:suggestion, user: user, created_at: 2.days.ago)
       history = Suggestion.new.user_pick_history(user.id)
-      expect(history).to eq([suggestion1, suggestion2])
+      expect(history).to eq([ suggestion1, suggestion2 ])
       expect(history.all? { |pick| pick.user_id == user.id }).to be true
     end
   end

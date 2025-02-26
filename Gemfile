@@ -53,7 +53,7 @@ group :development, :test do
 
   gem "rspec-rails"
 
-  gem 'factory_bot_rails'
+  gem "factory_bot_rails"
 
-  gem 'uri'
+  gem "uri"
 end

@@ -1,6 +1,6 @@
 class Reference < ApplicationRecord
   belongs_to :reason
-  
+
   validates :url, presence: true
   validate :url_must_be_valid
   validates :description, presence: true
