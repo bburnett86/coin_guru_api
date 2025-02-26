@@ -1,0 +1,26 @@
+FROM ruby:3.2.2
+
+# Install necessary dependencies
+RUN apt-get update -qq && apt-get install -y \
+    postgresql-client \
+    nodejs \
+    yarn \
+    build-essential \
+    libpq-dev \
+    git \
+    curl && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy Gemfile and install dependencies
+COPY Gemfile Gemfile.lock ./
+RUN bundle install --jobs 4 --retry 3
+
+# Copy the application files
+COPY . .
+
+# Ensure the correct environment is set
+ENV RAILS_ENV=test
+
+CMD ["bash"]

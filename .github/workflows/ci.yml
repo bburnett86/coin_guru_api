@@ -55,93 +55,53 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    env:
-      RAILS_ENV: test
-      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      COIN_GECKO_API_URL: ${{ secrets.COIN_GECKO_API_URL }}
-      COIN_GECKO_API_TOKEN: ${{ secrets.COIN_GECKO_API_TOKEN }}
-      DATABASE_URL: postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@db:5432/${{ secrets.POSTGRES_DB }}
+    services:
+      postgres:
+        image: postgres:17.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: coin_guru_api_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: docker-${{ hashFiles('Dockerfile') }}
-          restore-keys: |
-            docker-
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.2.2
+        bundler-cache: true
 
-      - name: Increase Swap Memory
-        run: |
-          sudo dd if=/dev/zero of=/swapfile bs=1G count=4
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          sudo sysctl vm.swappiness=25
-          free -h
+    - name: Install PostgreSQL Client
+      run: |
+        sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+        wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+        sudo apt-get update
+        sudo apt-get install postgresql-client-17
 
-      - name: Install Docker Compose
-        run: |
-          sudo curl -L "https://github.com/docker/compose/releases/download/v2.23.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          sudo chmod +x /usr/local/bin/docker-compose
-          docker-compose --version
+    - name: Database setup
+      env:
+        RAILS_ENV: test
+        POSTGRES_HOST: localhost
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: coin_guru_api_test
+      run: |
+        bundle install
+        bundle exec rails db:prepare
 
-      - name: Build and start services
-        run: |
-          docker-compose -f docker-compose.test.yml build --no-cache
-          docker-compose -f docker-compose.test.yml up -d
-          docker-compose -f docker-compose.test.yml ps
-
-      - name: Wait for database
-        run: |
-          timeout 120s bash -c '
-          until docker-compose -f docker-compose.test.yml exec -T db \
-            pg_isready -U postgres -d coin_guru_api_test; do
-            echo "Waiting for database..."
-            sleep 5
-          done'
-  
-      - name: Database setup
-        run: |
-          docker-compose -f docker-compose.test.yml exec -T web \
-            bundle exec rails db:prepare
-
-      - name: Verify Ruby version
-        run: |
-          echo "Expected Ruby version: 3.2.2"
-          docker-compose -f docker-compose.test.yml exec web ruby -v
-
-      - name: Database setup with retries
-        run: |
-          function rails_db() {
-            docker-compose -f docker-compose.test.yml exec -T web bundle exec rails "$@"
-          }
-
-          for i in {1..5}; do
-            if rails_db db:prepare; then
-              echo "Database setup successful"
-              break
-            else
-              echo "Attempt $i failed, restarting services..."
-              docker-compose -f docker-compose.test.yml restart web db
-              sleep 10
-            fi
-          done
-
-      - name: Run test suite
-        run: |
-          docker-compose -f docker-compose.test.yml exec -T web \
-            bundle exec rspec --format documentation
-
-      - name: Cleanup resources
-        if: always()
-        run: |
-          docker-compose -f docker-compose.test.yml down -v
-          docker system prune -a --force
+    - name: Run tests
+      env:
+        RAILS_ENV: test
+        POSTGRES_HOST: localhost
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: coin_guru_api_test
+      run: bundle exec rspec
