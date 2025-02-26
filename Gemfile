@@ -13,10 +13,6 @@ gem "puma", ">= 5.0"
 
 gem "nokogiri", "~> 1.18", platforms: [ :ruby ]
 
-ruby "3.3.0"
-
-
-
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
 
@@ -57,5 +53,7 @@ group :development, :test do
 
   gem "rspec-rails"
 
-  gem "dotenv-rails"
+  gem 'factory_bot_rails'
+
+  gem 'uri'
 end

@@ -1,19 +1,19 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  host: <%= ENV['DATABASE_HOST'] %>
-  port: <%= ENV['DATABASE_PORT'] %>
-  username: <%= ENV['DATABASE_USERNAME'] %>
-  password: <%= ENV['DATABASE_PASSWORD'] %>
+  host: <%= ENV['POSTGRES_HOST'] || 'localhost' %>
+  port: <%= ENV['POSTGRES_PORT'] || 5432 %>
+  username: <%= ENV['POSTGRES_USER'] %>
+  password: <%= ENV['POSTGRES_PASSWORD'] %>
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 development:
   <<: *default
-  database: <%= ENV.fetch('DATABASE_NAME') { 'coin_guru_api_development' } %>
+  database: <%= ENV.fetch('POSTGRES_DB_DEV') { 'coin_guru_api_development' } %>
 
 test:
   <<: *default
-  database: <%= ENV.fetch('DATABASE_NAME') { 'coin_guru_api_test' } %>
+  database: <%= ENV.fetch('POSTGRES_DB_TEST') { 'coin_guru_api_test' } %>
 
 production:
   <<: *default
