@@ -1,0 +1,33 @@
+FROM ruby:3.3.0-slim
+
+# Install dependencies
+RUN apt-get update -qq && apt-get install --no-install-recommends -y \
+    curl \
+    gnupg \
+    libjemalloc2 \
+    libvips \
+    libpq-dev \
+    postgresql-client \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /coin_guru_api
+
+# Print environment variables for debugging
+RUN printenv
+
+# Copy Gemfile and install gems
+COPY Gemfile Gemfile.lock ./
+RUN gem update --system 3.3.22 && \
+    gem install bundler -v 2.6.3 && \
+    bundle install --jobs=4 --retry=3
+
+# Copy the rest of the application code
+COPY . .
+
+# Set environment variables
+ENV RAILS_ENV=test
+
+# Run the test command
+CMD ["bash", "-c", "rm -f tmp/pids/server.pid && bin/rails server -b '0.0.0.0'"]

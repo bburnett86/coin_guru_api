@@ -24,9 +24,9 @@ cd coin_guru_api
 ### **2️⃣ Set Up Environment Variables**
 Copy the sample `.env` file and configure the necessary variables:
 ```sh
-cp .env.development.example .env.development
+cp .env.dev.example .env.dev
 ```
-Then, edit the `.env.development` file:
+Then, edit the `.env.dev` file:
 ```sh
 DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=postgres
@@ -39,7 +39,7 @@ RAILS_MASTER_KEY=your_master_key_here
 ### **3️⃣ Build and Start the Dev Environment**
 Run the following to build and start your development environment:
 ```sh
-docker-compose -f docker-compose.dev.yml up -d --build
+docker-compose --env-file .env.dev -f docker-compose.dev.yml up -d --build
 ```
 
 ### **4️⃣ Check Running Containers**

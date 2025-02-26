@@ -1,5 +1,5 @@
 class Suggestion < ApplicationRecord
-  enum suggestion_type: { public: "public", custom: "custom" }
+  enum suggestion_type: { public_suggestion: "public", custom: "custom" }
 
   belongs_to :coin
   belongs_to :user, optional: true
@@ -26,7 +26,7 @@ class Suggestion < ApplicationRecord
   private
 
   def public_suggestion_cannot_have_user
-    if public? && user_id.present?
+    if public_suggestion? && user_id.present?
       errors.add(:user_id, "must be blank for public suggestions")
     end
   end

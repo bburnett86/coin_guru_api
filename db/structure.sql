@@ -11,13 +11,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
---
-
--- *not* creating schema, since initdb creates it
-
-
---
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -88,7 +81,8 @@ CREATE TABLE public.reasons (
     suggestion_id uuid NOT NULL,
     description text NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT reason_type_check CHECK (((type)::text = ANY ((ARRAY['transaction_data'::character varying, 'rug_pull'::character varying, 'token_supply'::character varying, 'social_media_presence'::character varying, 'black_list'::character varying, 'summary'::character varying])::text[])))
 );
 
 
@@ -125,7 +119,8 @@ CREATE TABLE public.suggestions (
     suggestion_type character varying NOT NULL,
     user_id uuid,
     created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT suggestion_type_check CHECK (((suggestion_type)::text = ANY ((ARRAY['public'::character varying, 'custom'::character varying])::text[])))
 );
 
 
@@ -348,6 +343,8 @@ ALTER TABLE ONLY public.suggestions
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20250226224925'),
+('20250226223427'),
 ('20250131000216'),
 ('20250130220926'),
 ('20250130220925'),
