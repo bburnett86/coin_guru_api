@@ -25,12 +25,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
-      args:
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        POSTGRES_DB_TEST: ${POSTGRES_DB_TEST}
-        POSTGRES_PORT: ${POSTGRES_PORT}
-        RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
     env_file:
       - .env.test
     environment:

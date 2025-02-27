@@ -30,7 +30,7 @@ jobs:
 
       - name: Scan for security vulnerabilities
         run: bin/brakeman --no-pager
-
+        
   lint:
     runs-on: ubuntu-latest
     steps:
