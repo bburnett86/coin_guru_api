@@ -14,6 +14,11 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
 # Set working directory
 WORKDIR /coin_guru_api
 
+
+# Copy the test environment file and rename it to .env inside the container
+COPY .env.test .env
+
+
 # Print environment variables for debugging
 RUN printenv
 
@@ -31,4 +36,5 @@ ENV RAILS_ENV=test
 
 # Run the test command
 CMD ["bash", "-c", "rm -f tmp/pids/server.pid && ${RAILS_CMD:-bin/rails server -b '0.0.0.0'}"]
+
 

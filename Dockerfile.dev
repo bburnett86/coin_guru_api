@@ -7,6 +7,11 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 WORKDIR /coin_guru_api
 
+
+# Copy the test environment file and rename it to .env inside the container
+COPY .env.dev .env
+
+
 # Install runtime dependencies
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
