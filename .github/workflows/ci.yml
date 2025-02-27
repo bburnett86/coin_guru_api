@@ -61,6 +61,7 @@ jobs:
       POSTGRES_DB_TEST: ${{ secrets.POSTGRES_DB_TEST }}
       RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
       POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      RAILS_CMD: "bundle exec rspec"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

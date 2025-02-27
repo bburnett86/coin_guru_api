@@ -30,4 +30,5 @@ COPY . .
 ENV RAILS_ENV=test
 
 # Run the test command
-CMD ["bash", "-c", "rm -f tmp/pids/server.pid && bin/rails server -b '0.0.0.0'"]
+CMD ["bash", "-c", "rm -f tmp/pids/server.pid && ${RAILS_CMD:-bin/rails server -b '0.0.0.0'}"]
+
