@@ -25,6 +25,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
+    entrypoint: ["/coin_guru_api/bin/docker-entrypoint"]
     env_file:
       - .env.test
     environment:
