@@ -14,11 +14,6 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
 # Set working directory
 WORKDIR /coin_guru_api
 
-
-# Copy the test environment file and rename it to .env inside the container
-COPY .env.test .env
-
-
 # Print environment variables for debugging
 RUN printenv
 
@@ -31,10 +26,30 @@ RUN gem update --system 3.3.22 && \
 # Copy the rest of the application code
 COPY . .
 
+# Ensure the entrypoint script is executable
+RUN chmod +x bin/docker-entrypoint
+
 # Set environment variables
 ENV RAILS_ENV=test
 
-# Run the test command
-CMD ["bash", "-c", "rm -f tmp/pids/server.pid && ${RAILS_CMD:-bin/rails server -b '0.0.0.0'}"]
+# Create .env file from build arguments
+ARG POSTGRES_USER
+ARG POSTGRES_PASSWORD
+ARG POSTGRES_DB_TEST
+ARG POSTGRES_PORT
+ARG RAILS_MASTER_KEY
 
+RUN echo "POSTGRES_USER=${POSTGRES_USER}" >> .env && \
+    echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env && \
+    echo "POSTGRES_DB_TEST=${POSTGRES_DB_TEST}" >> .env && \
+    echo "POSTGRES_PORT=${POSTGRES_PORT}" >> .env && \
+    echo "RAILS_MASTER_KEY=${RAILS_MASTER_KEY}" >> .env
 
+# Run the entrypoint script
+ENTRYPOINT ["bin/docker-entrypoint"]
+
+# Run the Rails server CI
+CMD ["bin/docker-entrypoint", "bundle", "exec", "rspec"]
+
+# Run the Rails server Local
+# CMD ["bin/rails", "server", "-b", "0.0.0.0"]
