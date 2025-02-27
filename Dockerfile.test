@@ -7,18 +7,15 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     libjemalloc2 \
     libvips \
     libpq-dev \
+    postgresql-client \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Add PostgreSQL repository and install the correct version of the PostgreSQL client
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(grep -oP 'VERSION_CODENAME=\K\w+' /etc/os-release)-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list && \
-    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
-    apt-get update -qq && \
-    apt-get install --no-install-recommends -y postgresql-client-17 && \
-    rm -rf /var/lib/apt/lists/*
-
 # Set working directory
 WORKDIR /coin_guru_api
+
+# Print environment variables for debugging
+RUN printenv
 
 # Copy Gemfile and install gems
 COPY Gemfile Gemfile.lock ./
@@ -35,11 +32,21 @@ RUN chmod +x bin/docker-entrypoint
 # Set environment variables
 ENV RAILS_ENV=test
 
-# Copy .env.test to .env
-COPY .env.test .env
+# Create .env file from build arguments
+ARG POSTGRES_USER
+ARG POSTGRES_PASSWORD
+ARG POSTGRES_DB_TEST
+ARG POSTGRES_PORT
+ARG RAILS_MASTER_KEY
+
+RUN echo "POSTGRES_USER=${POSTGRES_USER}" >> .env && \
+    echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env && \
+    echo "POSTGRES_DB_TEST=${POSTGRES_DB_TEST}" >> .env && \
+    echo "POSTGRES_PORT=${POSTGRES_PORT}" >> .env && \
+    echo "RAILS_MASTER_KEY=${RAILS_MASTER_KEY}" >> .env
 
 # Run the entrypoint script
 ENTRYPOINT ["bin/docker-entrypoint"]
 
-# Run the Rails server
-CMD ["bin/rails", "server", "-b", "0.0.0.0"]
+# Run the Rails server CI
+CMD ["bin/docker-entrypoint", "bundle", "exec", "rspec"]
