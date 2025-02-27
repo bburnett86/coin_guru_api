@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :coin do
-    name { "Bitcoin" }
-    symbol { "BTC" }
+    sequence(:name) { |n| "Bitcoin#{n}" }
+    sequence(:symbol) { |n| "BTC#{n}" }
   end
 end

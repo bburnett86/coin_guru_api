@@ -9,6 +9,28 @@ on:
       - main
 
 jobs:
+  scan_ruby:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+
+      - name: Update RubyGems to the required version
+        run: gem update --system 3.3.22
+
+      - name: Install Dependencies
+        run: |
+          bundle install --jobs 4 --retry 3
+          bundle binstubs railties --force
+
+      - name: Scan for security vulnerabilities
+        run: bin/brakeman --no-pager
+        
   lint:
     runs-on: ubuntu-latest
     steps:

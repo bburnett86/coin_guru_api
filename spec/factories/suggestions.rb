@@ -1,11 +1,11 @@
 FactoryBot.define do
   factory :suggestion do
-    suggestion_type { "public" }
     association :coin
-    association :user
+    suggestion_type { "public_suggestion" }
 
     trait :custom do
       suggestion_type { "custom" }
+      association :user
     end
   end
 end

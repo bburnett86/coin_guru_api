@@ -7,9 +7,15 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y \
     libjemalloc2 \
     libvips \
     libpq-dev \
-    postgresql-client \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
+
+# Add PostgreSQL repository and install the correct version of the PostgreSQL client
+RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(grep -oP 'VERSION_CODENAME=\K\w+' /etc/os-release)-pgdg main" | tee /etc/apt/sources.list.d/pgdg.list && \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+    apt-get update -qq && \
+    apt-get install --no-install-recommends -y postgresql-client-17 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /coin_guru_api
@@ -49,4 +55,4 @@ RUN echo "POSTGRES_USER=${POSTGRES_USER}" >> .env && \
 ENTRYPOINT ["bin/docker-entrypoint"]
 
 # Run the Rails server CI
-CMD ["bin/docker-entrypoint", "bundle", "exec", "rspec"]
+CMD ["bin/rails", "server", "-b", "0.0.0.0"]
