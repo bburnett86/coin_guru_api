@@ -5,7 +5,7 @@ class Suggestion < ApplicationRecord
   belongs_to :user, optional: true
   has_many :reasons, dependent: :destroy
 
-  validates :suggestion_type, presence: true
+validates :suggestion_type, presence: true
   validates :coin_id, presence: true
   validates :user_id, presence: true, if: :custom?
   validate :public_suggestion_cannot_have_user
