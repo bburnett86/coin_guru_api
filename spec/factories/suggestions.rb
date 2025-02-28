@@ -1,6 +1,6 @@
 FactoryBot.define do
   factory :suggestion do
-    association :coin
+    association :coin, strategy: :create
     suggestion_type { "public_suggestion" }
 
     trait :custom do

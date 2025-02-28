@@ -27,13 +27,13 @@ validates :suggestion_type, presence: true
 
   def public_suggestion_cannot_have_user
     if public_suggestion? && user_id.present?
-      errors.add(:user_id, "must be blank for public suggestions")
+      errors.add(:user_id, "public suggestions cannot have users")
     end
   end
 
   def custom_suggestion_must_have_user
     if custom? && user_id.blank?
-      errors.add(:user_id, "must be present for custom suggestions")
+      errors.add(:user_id, "custom suggestions must have a user.")
     end
   end
 end

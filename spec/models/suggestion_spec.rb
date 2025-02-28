@@ -2,40 +2,40 @@ require 'rails_helper'
 
 RSpec.describe Suggestion, type: :model do
   it "is valid with valid attributes" do
-    suggestion = FactoryBot.build(:suggestion)
+    suggestion = FactoryBot.create(:suggestion)
     expect(suggestion).to be_valid
   end
 
   it "is not valid without a suggestion_type" do
-    suggestion = FactoryBot.build(:suggestion, suggestion_type: nil)
+    suggestion = FactoryBot.create(:suggestion, suggestion_type: nil)
     expect(suggestion).to_not be_valid
   end
 
   it "is not valid without a coin_id" do
-    suggestion = FactoryBot.build(:suggestion, coin: nil)
+    suggestion = FactoryBot.create(:suggestion, coin: nil)
     expect(suggestion).to_not be_valid
   end
 
   it "is valid without a user_id if suggestion_type is public" do
-    suggestion = FactoryBot.build(:suggestion, suggestion_type: "public_suggestion", user: nil)
+    suggestion = FactoryBot.create(:suggestion, suggestion_type: "public_suggestion", user: nil)
     expect(suggestion).to be_valid
   end
 
   it "is not valid without a user_id if suggestion_type is custom" do
-    suggestion = FactoryBot.build(:suggestion, :custom, user: nil)
+    suggestion = FactoryBot.create(:suggestion, :custom, user: nil)
     expect(suggestion).to_not be_valid
   end
 
   it "is not valid with a user_id if suggestion_type is public" do
     user = FactoryBot.create(:user)
-    suggestion = FactoryBot.build(:suggestion, suggestion_type: "public_suggestion", user: user)
+    suggestion = FactoryBot.create(:suggestion, suggestion_type: "public_suggestion", user: user)
     expect(suggestion).to_not be_valid
     expect(suggestion.errors[:user_id]).to include("must be blank for public suggestions")
   end
 
   it "is valid with a user_id if suggestion_type is custom" do
     user = FactoryBot.create(:user)
-    suggestion = FactoryBot.build(:suggestion, :custom, user: user)
+    suggestion = FactoryBot.create(:suggestion, :custom, user: user)
     expect(suggestion).to be_valid
   end
 
