@@ -116,6 +116,12 @@ To check for errors or debug:
 docker-compose -f docker-compose.dev.yml logs -f web
 ```
 
+### **📌 Running RuboCop**
+To fix linting issues with RuboCop:
+```sh
+bundle exec rubocop -A
+```
+
 ---
 
 ## **❓ Troubleshooting**
