@@ -49,7 +49,7 @@ RSpec.describe Suggestion, type: :model do
     it "returns the specified number of public suggestions" do
       # Persist these records because the query method requires persisted data.
       FactoryBot.create_list(:suggestion, 3, suggestion_type: "public_suggestion")
-      picks = Suggestion.new.picks_of_the_day(2)
+      picks = Suggestion.picks_of_the_day(2)
       expect(picks.count).to eq(2)
       expect(picks.all? { |pick| pick.suggestion_type == "public_suggestion" }).to be true
     end
