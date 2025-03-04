@@ -5,14 +5,14 @@ class Suggestion < ApplicationRecord
   belongs_to :user, optional: true
   has_many :reasons, dependent: :destroy
 
-validates :suggestion_type, presence: true
+  validates :suggestion_type, presence: true
   validates :coin_id, presence: true
   validates :user_id, presence: true, if: :custom?
   validate :public_suggestion_cannot_have_user
   validate :custom_suggestion_must_have_user
 
-  def picks_of_the_day(number_of_picks)
-    Suggestion.where(suggestion_type: "public").limit(number_of_picks)
+  def self.picks_of_the_day(number_of_picks)
+    where(suggestion_type: "public").limit(number_of_picks)
   end
 
   def public_pick_history
