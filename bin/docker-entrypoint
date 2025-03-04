@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Ensure the correct environment file is used in test mode
+if [ "$RAILS_ENV" = "test" ]; then
+  echo "Using test environment: Copying .env.test to .env"
+  cp /coin_guru_api/.env.test /coin_guru_api/.env
+fi
+
 # Remove a pre-existing server.pid for Rails
 if [ -f tmp/pids/server.pid ]; then
   rm tmp/pids/server.pid

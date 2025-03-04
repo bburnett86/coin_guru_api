@@ -7,6 +7,11 @@ FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 WORKDIR /coin_guru_api
 
+
+# Copy the test environment file and rename it to .env inside the container
+COPY .env.dev .env
+
+
 # Install runtime dependencies
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
@@ -29,8 +34,8 @@ RUN gem update --system 3.3.22 && \
     gem install bundler -v 2.6.3
 
 # Configure environment
-ENV RAILS_ENV="${RAILS_ENV:-production}" \
-    BUNDLE_DEPLOYMENT="${BUNDLE_DEPLOYMENT:-0}" \
+ENV RAILS_ENV=development \
+    BUNDLE_DEPLOYMENT=0 \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="${BUNDLE_WITHOUT}" \
     LANG=C.UTF-8 \
@@ -52,9 +57,6 @@ RUN apt-get update -qq && \
 
 # Copy application code
 COPY . .
-
-# Development stage
-FROM base AS development
 
 # Install additional development dependencies
 RUN apt-get update -qq && \
@@ -87,31 +89,3 @@ RUN bundle exec bootsnap precompile --gemfile app/ lib/
 # Set entrypoint and command
 ENTRYPOINT ["bin/docker-entrypoint"]
 CMD ["rails", "server", "-b", "0.0.0.0"]
-
-# Test stage
-FROM base AS test
-
-# Install test dependencies
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y \
-    libgmp-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set Rails environment to test
-ENV RAILS_ENV=test
-
-# Run tests
-CMD ["rails", "test"]
-
-# Production stage
-FROM base AS production
-
-# Set Rails environment to production
-ENV RAILS_ENV=production
-
-# Precompile assets
-RUN bundle exec rails assets:precompile
-
-# Set entrypoint and command
-ENTRYPOINT ["bin/docker-entrypoint"]
-CMD ["rails", "server", "-b", "0.

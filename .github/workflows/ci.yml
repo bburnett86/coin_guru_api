@@ -1,9 +1,12 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   scan_ruby:
@@ -27,7 +30,7 @@ jobs:
 
       - name: Scan for security vulnerabilities
         run: bin/brakeman --no-pager
-
+        
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -48,13 +51,28 @@ jobs:
           bundle binstubs railties --force
 
       - name: Lint code for style consistency
-        run: bin/rubocop -f github
+        run: bundle exec rubocop -f github
 
   test:
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB_TEST: ${{ secrets.POSTGRES_DB_TEST }}
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+      RAILS_CMD: "bundle exec rspec"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Create .env.test file
+        run: |
+          echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> .env.test
+          echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env.test
+          echo "POSTGRES_DB_TEST=${{ secrets.POSTGRES_DB_TEST }}" >> .env.test
+          echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> .env.test
+          echo "RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}" >> .env.test
 
       - name: Install Docker Compose
         run: |
@@ -63,11 +81,11 @@ jobs:
           docker-compose --version
 
       - name: Set up Docker Compose environment for testing
-        run: docker-compose -f docker-compose.test.yml up -d --build
+        run: docker-compose --env-file .env.test -f docker-compose.test.yml up -d --build
 
       - name: Wait for services to be ready
         run: |
-          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U postgres -d coin_guru_api_test; do sleep 2; done'
+          timeout 60s bash -c 'until docker-compose -f docker-compose.test.yml exec -T db pg_isready -U $POSTGRES_USER -d $POSTGRES_DB_TEST; do sleep 2; done'
 
       - name: Drop and create database
         run: |
